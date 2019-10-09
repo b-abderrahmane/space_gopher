@@ -9,6 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
+// GlobalRegion is the Default region for now
+const GlobalRegion = "us-west-1"
+
 func main() {
 
 	if len(os.Args) != 3 {
@@ -19,11 +22,7 @@ func main() {
 	bucketName := os.Args[2]
 
 	if action == "create" {
-		sess, _ := session.NewSession(&aws.Config{
-			Region: aws.String("us-west-1")},
-		)
-
-		svc := s3.New(sess)
+		svc := getS3Client(getAwsSession())
 
 		_, err := svc.CreateBucket(&s3.CreateBucketInput{
 			Bucket: aws.String(bucketName),
@@ -36,11 +35,8 @@ func main() {
 		}
 
 	} else if action == "delete" {
-		sess, _ := session.NewSession(&aws.Config{
-			Region: aws.String("us-west-1")},
-		)
 
-		svc := s3.New(sess)
+		svc := getS3Client(getAwsSession())
 
 		_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
 			Bucket: aws.String(bucketName),
@@ -58,6 +54,22 @@ func main() {
 
 	//_, err := sess.Config.Credentials.Get()
 
+}
+
+func getAwsSession() *session.Session {
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(GlobalRegion)},
+	)
+	if err != nil {
+		exitErrorf("Unable to create an AWS session, %v", err)
+	}
+	return sess
+}
+
+func getS3Client(sess *session.Session) *s3.S3 {
+	svc := s3.New(sess)
+
+	return svc
 }
 
 func exitErrorf(msg string, args ...interface{}) {
