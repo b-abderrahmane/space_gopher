@@ -14,14 +14,14 @@ const GlobalRegion = "us-west-1"
 
 func main() {
 
-	if len(os.Args) != 3 {
+	if len(os.Args) < 2 {
 		exitErrorf("Usage: %s action bucket_name",
 			os.Args[0])
 	}
 	action := os.Args[1]
-	bucketName := os.Args[2]
 
 	if action == "create" {
+		bucketName := os.Args[2]
 		svc := getS3Client(getAwsSession())
 
 		_, err := svc.CreateBucket(&s3.CreateBucketInput{
@@ -35,7 +35,7 @@ func main() {
 		}
 
 	} else if action == "delete" {
-
+		bucketName := os.Args[2]
 		svc := getS3Client(getAwsSession())
 
 		_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
@@ -48,8 +48,28 @@ func main() {
 			fmt.Printf("Bucket %s deleted successfully\n", bucketName)
 		}
 
+	} else if action == "list" {
+
+		svc := getS3Client(getAwsSession())
+
+		result, err := svc.ListBuckets(nil)
+
+		if err != nil {
+			exitErrorf("Unable to list buckets")
+		}
+		if result.Buckets != nil {
+			fmt.Println("Buckets:")
+
+			for _, b := range result.Buckets {
+				fmt.Printf("* %s created on %s\n",
+					aws.StringValue(b.Name), aws.TimeValue(b.CreationDate))
+			}
+		} else {
+			fmt.Println("No buckets found.")
+		}
+
 	} else {
-		exitErrorf("Unvalid action %q\n", bucketName)
+		exitErrorf("Unvalid action %q\n", action)
 	}
 
 	//_, err := sess.Config.Credentials.Get()
