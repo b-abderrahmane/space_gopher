@@ -11,35 +11,49 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+type S3BucketNamespace struct {
+	bucketParser  *argparse.Command
+	deleteCommand *argparse.Command
+	createCommand *argparse.Command
+	listCommand   *argparse.Command
+}
+
+type S3FileNamespace struct {
+	fileCommand     *argparse.Command
+	uploadCommand   *argparse.Command
+	downloadCommand *argparse.Command
+	deleteCommand   *argparse.Command
+}
+
+type S3Namespace struct {
+	s3Command       *argparse.Command
+	bucketNamespace *S3BucketNamespace
+	fileNamespace   *S3FileNamespace
+}
+
+type CLIParser struct {
+	parser      *argparse.Parser
+	s3Namespace *S3Namespace
+}
+
 // GlobalRegion is the Default region for now
 const GlobalRegion = "us-west-1"
 
 func main() {
 
-	parser := argparse.NewParser(os.Args[0], "Prints provided string to stdout")
+	cliParser := createCLIParser()
 
-	s3Cmd := parser.NewCommand("s3", "Manage AWS S3 resources")
+	createBucketName := cliParser.s3Namespace.bucketNamespace.createCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: true})
+	deleteBucketName := cliParser.s3Namespace.bucketNamespace.deleteCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be deleted", Required: true})
+	deleteBucketPurge := cliParser.s3Namespace.bucketNamespace.deleteCommand.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
 
-	bucketCmd := s3Cmd.NewCommand("bucket", "Manage S3 buckets")
-
-	createCmd := bucketCmd.NewCommand("create", "Create an S3 bucket")
-
-	deleteCmd := bucketCmd.NewCommand("delete", "Delete an S3 bucket")
-
-	listCmd := bucketCmd.NewCommand("list", "List S3 buckets")
-
-	createBucketName := createCmd.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: true})
-
-	deleteBucketName := deleteCmd.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be deleted", Required: true})
-	deleteBucketPurge := deleteCmd.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
-
-	err := parser.Parse(os.Args)
+	err := cliParser.parser.Parse(os.Args)
 	if err != nil {
-		fmt.Println(parser.Usage(err))
+		fmt.Println(cliParser.parser.Usage(err))
 		return
 	}
 
-	if createCmd.Happened() {
+	if cliParser.s3Namespace.bucketNamespace.createCommand.Happened() {
 		svc := getS3Client(getAwsSession())
 
 		_, err := svc.CreateBucket(&s3.CreateBucketInput{
@@ -52,7 +66,7 @@ func main() {
 			fmt.Printf("Bucket %s created successfully\n", *createBucketName)
 		}
 
-	} else if deleteCmd.Happened() {
+	} else if cliParser.s3Namespace.bucketNamespace.deleteCommand.Happened() {
 		svc := getS3Client(getAwsSession())
 
 		if *deleteBucketPurge {
@@ -77,7 +91,7 @@ func main() {
 			fmt.Printf("Bucket %s deleted successfully\n", *deleteBucketName)
 		}
 
-	} else if listCmd.Happened() {
+	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
 
 		svc := getS3Client(getAwsSession())
 
@@ -98,6 +112,7 @@ func main() {
 		}
 
 	}
+
 }
 
 func getAwsSession() *session.Session {
@@ -113,6 +128,22 @@ func getAwsSession() *session.Session {
 func getS3Client(sess *session.Session) *s3.S3 {
 	svc := s3.New(sess)
 	return svc
+}
+
+func createCLIParser() *CLIParser {
+	var cliParser *CLIParser
+	cliParser = new(CLIParser)
+	cliParser.parser = argparse.NewParser(os.Args[0], "Prints provided string to stdout")
+	cliParser.s3Namespace = new(S3Namespace)
+	cliParser.s3Namespace.s3Command = cliParser.parser.NewCommand("s3", "Manage AWS S3 resources")
+	cliParser.s3Namespace.bucketNamespace = new(S3BucketNamespace)
+	cliParser.s3Namespace.bucketNamespace.bucketParser = cliParser.s3Namespace.s3Command.NewCommand("bucket", "Manage S3 buckets")
+	cliParser.s3Namespace.bucketNamespace.deleteCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("delete", "Delete an S3 bucket")
+	cliParser.s3Namespace.bucketNamespace.createCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("create", "Create an S3 bucket")
+	cliParser.s3Namespace.bucketNamespace.listCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("list", "List S3 buckets")
+	cliParser.s3Namespace.fileNamespace = new(S3FileNamespace)
+	cliParser.s3Namespace.fileNamespace.fileCommand = cliParser.s3Namespace.s3Command.NewCommand("file", "Manage S3 buckets content")
+	return cliParser
 }
 
 func exitErrorf(msg string, args ...interface{}) {
