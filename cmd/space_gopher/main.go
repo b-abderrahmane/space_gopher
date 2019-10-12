@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/space_gopher/pkg/s3"
-
+	"../../pkg/awsstorage"
 	"github.com/akamensky/argparse"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -55,13 +54,13 @@ func main() {
 	}
 
 	if cliParser.s3Namespace.bucketNamespace.createCommand.Happened() {
-		createBucket(getS3Client(getAwsSession()), *createBucketName)
+		awsstorage.CreateBucket(getS3Client(getAwsSession()), *createBucketName)
 
 	} else if cliParser.s3Namespace.bucketNamespace.deleteCommand.Happened() {
-		deleteBucket(getS3Client(getAwsSession()), *deleteBucketName, *deleteBucketPurge)
+		awsstorage.DeleteBucket(getS3Client(getAwsSession()), *deleteBucketName, *deleteBucketPurge)
 
 	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
-		listBucket(getS3Client(getAwsSession()))
+		awsstorage.ListBucket(getS3Client(getAwsSession()))
 	}
 }
 
@@ -70,7 +69,7 @@ func getAwsSession() *session.Session {
 		Region: aws.String(GlobalRegion)},
 	)
 	if err != nil {
-		exitErrorf("Unable to create an AWS session, %v", err)
+		awsstorage.ExitErrorf("Unable to create an AWS session, %v", err)
 	}
 	return sess
 }
