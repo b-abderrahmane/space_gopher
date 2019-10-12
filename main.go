@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/akamensky/argparse"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -14,41 +15,55 @@ const GlobalRegion = "us-west-1"
 
 func main() {
 
-	if len(os.Args) < 2 {
-		exitErrorf("Usage: %s action bucket_name",
-			os.Args[0])
-	}
-	action := os.Args[1]
+	parser := argparse.NewParser(os.Args[0], "Prints provided string to stdout")
 
-	if action == "create" {
-		bucketName := os.Args[2]
+	s3Cmd := parser.NewCommand("s3", "Manage AWS S3 resources")
+
+	bucketCmd := s3Cmd.NewCommand("bucket", "Manage S3 buckets")
+
+	createCmd := bucketCmd.NewCommand("create", "Create an S3 bucket")
+
+	deleteCmd := bucketCmd.NewCommand("delete", "Delete an S3 bucket")
+
+	listCmd := bucketCmd.NewCommand("list", "List S3 buckets")
+
+	createBucketName := createCmd.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: true})
+
+	deleteBucketName := deleteCmd.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be deleted", Required: true})
+
+	err := parser.Parse(os.Args)
+	if err != nil {
+		fmt.Println(parser.Usage(err))
+		return
+	}
+
+	if createCmd.Happened() {
 		svc := getS3Client(getAwsSession())
 
 		_, err := svc.CreateBucket(&s3.CreateBucketInput{
-			Bucket: aws.String(bucketName),
+			Bucket: aws.String(*createBucketName),
 		})
 
 		if err != nil {
-			exitErrorf("Unable to create bucket %q, %v", bucketName, err)
+			exitErrorf("Unable to create bucket %q, %v", *createBucketName, err)
 		} else {
-			fmt.Printf("Bucket %s created successfully\n", bucketName)
+			fmt.Printf("Bucket %s created successfully\n", *createBucketName)
 		}
 
-	} else if action == "delete" {
-		bucketName := os.Args[2]
+	} else if deleteCmd.Happened() {
 		svc := getS3Client(getAwsSession())
 
 		_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
-			Bucket: aws.String(bucketName),
+			Bucket: aws.String(*deleteBucketName),
 		})
 
 		if err != nil {
-			exitErrorf("Unable to delete bucket %q, %v", bucketName, err)
+			exitErrorf("Unable to delete bucket %q, %v", *deleteBucketName, err)
 		} else {
-			fmt.Printf("Bucket %s deleted successfully\n", bucketName)
+			fmt.Printf("Bucket %s deleted successfully\n", *deleteBucketName)
 		}
 
-	} else if action == "list" {
+	} else if listCmd.Happened() {
 
 		svc := getS3Client(getAwsSession())
 
@@ -68,8 +83,6 @@ func main() {
 			fmt.Println("No buckets found.")
 		}
 
-	} else {
-		exitErrorf("Unvalid action %q\n", action)
 	}
 
 	//_, err := sess.Config.Credentials.Get()
