@@ -54,58 +54,13 @@ func main() {
 	}
 
 	if cliParser.s3Namespace.bucketNamespace.createCommand.Happened() {
-		svc := getS3Client(getAwsSession())
-		_, err := svc.CreateBucket(&s3.CreateBucketInput{
-			Bucket: aws.String(*createBucketName),
-		})
-
-		if err != nil {
-			exitErrorf("Unable to create bucket %q, %v", *createBucketName, err)
-		} else {
-			fmt.Printf("Bucket %s created successfully\n", *createBucketName)
-		}
+		createBucket(getS3Client(getAwsSession()), *createBucketName)
 
 	} else if cliParser.s3Namespace.bucketNamespace.deleteCommand.Happened() {
-		svc := getS3Client(getAwsSession())
-		if *deleteBucketPurge {
-			fmt.Printf("Bucket %s contains some elements, those files will be deleted.\n", *deleteBucketName)
-			iter := s3manager.NewDeleteListIterator(svc, &s3.ListObjectsInput{
-				Bucket: aws.String(*deleteBucketName),
-			})
-
-			if err := s3manager.NewBatchDeleteWithClient(svc).Delete(aws.BackgroundContext(), iter); err != nil {
-				exitErrorf("Unable to delete objects from bucket %q, %v", *deleteBucketName, err)
-			}
-			fmt.Printf("Bucket %s content purged successfully\n", *deleteBucketName)
-		}
-
-		_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
-			Bucket: aws.String(*deleteBucketName),
-		})
-
-		if err != nil {
-			exitErrorf("Unable to delete bucket %q, %v", *deleteBucketName, err)
-		} else {
-			fmt.Printf("Bucket %s deleted successfully\n", *deleteBucketName)
-		}
+		deleteBucket(getS3Client(getAwsSession()), *deleteBucketName, *deleteBucketPurge)
 
 	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
-		svc := getS3Client(getAwsSession())
-		result, err := svc.ListBuckets(nil)
-
-		if err != nil {
-			exitErrorf("Unable to list buckets")
-		}
-		if result.Buckets != nil {
-			fmt.Println("Buckets:")
-
-			for _, b := range result.Buckets {
-				fmt.Printf("* %s created on %s\n",
-					aws.StringValue(b.Name), aws.TimeValue(b.CreationDate))
-			}
-		} else {
-			fmt.Println("No buckets found.")
-		}
+		listBucket(getS3Client(getAwsSession()))
 	}
 }
 
@@ -122,6 +77,60 @@ func getAwsSession() *session.Session {
 func getS3Client(sess *session.Session) *s3.S3 {
 	svc := s3.New(sess)
 	return svc
+}
+
+func createBucket(svc *s3.S3, bucketName string) {
+	_, err := svc.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+
+	if err != nil {
+		exitErrorf("Unable to create bucket %q, %v", bucketName, err)
+	} else {
+		fmt.Printf("Bucket %s created successfully\n", bucketName)
+	}
+}
+
+func deleteBucket(svc *s3.S3, bucketName string, purgeBucket bool) {
+	if purgeBucket {
+		fmt.Printf("Bucket %s contains some elements, those files will be deleted.\n", bucketName)
+		iter := s3manager.NewDeleteListIterator(svc, &s3.ListObjectsInput{
+			Bucket: aws.String(bucketName),
+		})
+
+		if err := s3manager.NewBatchDeleteWithClient(svc).Delete(aws.BackgroundContext(), iter); err != nil {
+			exitErrorf("Unable to delete objects from bucket %q, %v", bucketName, err)
+		}
+		fmt.Printf("Bucket %s content purged successfully\n", bucketName)
+	}
+
+	_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+
+	if err != nil {
+		exitErrorf("Unable to delete bucket %q, %v", bucketName, err)
+	} else {
+		fmt.Printf("Bucket %s deleted successfully\n", bucketName)
+	}
+}
+
+func listBucket(svc *s3.S3) {
+	result, err := svc.ListBuckets(nil)
+
+	if err != nil {
+		exitErrorf("Unable to list buckets")
+	}
+	if result.Buckets != nil {
+		fmt.Println("Buckets:")
+
+		for _, b := range result.Buckets {
+			fmt.Printf("* %s created on %s\n",
+				aws.StringValue(b.Name), aws.TimeValue(b.CreationDate))
+		}
+	} else {
+		fmt.Println("No buckets found.")
+	}
 }
 
 func createCLIParser() *CLIParser {
