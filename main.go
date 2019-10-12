@@ -55,7 +55,6 @@ func main() {
 
 	if cliParser.s3Namespace.bucketNamespace.createCommand.Happened() {
 		svc := getS3Client(getAwsSession())
-
 		_, err := svc.CreateBucket(&s3.CreateBucketInput{
 			Bucket: aws.String(*createBucketName),
 		})
@@ -68,7 +67,6 @@ func main() {
 
 	} else if cliParser.s3Namespace.bucketNamespace.deleteCommand.Happened() {
 		svc := getS3Client(getAwsSession())
-
 		if *deleteBucketPurge {
 			fmt.Printf("Bucket %s contains some elements, those files will be deleted.\n", *deleteBucketName)
 			iter := s3manager.NewDeleteListIterator(svc, &s3.ListObjectsInput{
@@ -92,9 +90,7 @@ func main() {
 		}
 
 	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
-
 		svc := getS3Client(getAwsSession())
-
 		result, err := svc.ListBuckets(nil)
 
 		if err != nil {
@@ -110,9 +106,7 @@ func main() {
 		} else {
 			fmt.Println("No buckets found.")
 		}
-
 	}
-
 }
 
 func getAwsSession() *session.Session {
