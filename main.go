@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 // GlobalRegion is the Default region for now
@@ -30,6 +31,7 @@ func main() {
 	createBucketName := createCmd.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: true})
 
 	deleteBucketName := deleteCmd.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be deleted", Required: true})
+	deleteBucketPurge := deleteCmd.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
 
 	err := parser.Parse(os.Args)
 	if err != nil {
@@ -52,6 +54,18 @@ func main() {
 
 	} else if deleteCmd.Happened() {
 		svc := getS3Client(getAwsSession())
+
+		if *deleteBucketPurge {
+			fmt.Printf("Bucket %s contains some elements, those files will be deleted.\n", *deleteBucketName)
+			iter := s3manager.NewDeleteListIterator(svc, &s3.ListObjectsInput{
+				Bucket: aws.String(*deleteBucketName),
+			})
+
+			if err := s3manager.NewBatchDeleteWithClient(svc).Delete(aws.BackgroundContext(), iter); err != nil {
+				exitErrorf("Unable to delete objects from bucket %q, %v", *deleteBucketName, err)
+			}
+			fmt.Printf("Bucket %s content purged successfully\n", *deleteBucketName)
+		}
 
 		_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
 			Bucket: aws.String(*deleteBucketName),
