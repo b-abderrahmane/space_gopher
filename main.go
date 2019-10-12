@@ -98,9 +98,6 @@ func main() {
 		}
 
 	}
-
-	//_, err := sess.Config.Credentials.Get()
-
 }
 
 func getAwsSession() *session.Session {
@@ -115,7 +112,6 @@ func getAwsSession() *session.Session {
 
 func getS3Client(sess *session.Session) *s3.S3 {
 	svc := s3.New(sess)
-
 	return svc
 }
 
