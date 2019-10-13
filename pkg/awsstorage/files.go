@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func UploadFile(sess *session.Session, bucketName string, file_path string) {
+func UploadFile(sess *session.Session, bucketName string, file_path string, uploadOverwrite bool) {
 
 	// Create an uploader with the session and default options
 	uploader := s3manager.NewUploader(sess)
@@ -18,10 +18,11 @@ func UploadFile(sess *session.Session, bucketName string, file_path string) {
 	if err != nil {
 		ExitErrorf("failed to open file %q, %v", file_path, err)
 	}
-
-	for _, item := range listFiles(GetS3Client(sess), bucketName) {
-		if *item.Key == file_path {
-			ExitErrorf("Upload canceled, a file with the same name (%q) already exists", file_path)
+	if !uploadOverwrite {
+		for _, item := range listFiles(GetS3Client(sess), bucketName) {
+			if *item.Key == file_path {
+				ExitErrorf("Upload canceled, a file with the same name (%q) already exists", file_path)
+			}
 		}
 	}
 

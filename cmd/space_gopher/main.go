@@ -51,6 +51,7 @@ func main() {
 	deleteBucketPurge := cliParser.s3Namespace.bucketNamespace.deleteCommand.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
 	uploadName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
 	uploadBucketName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
+	uploadOverwrite := cliParser.s3Namespace.fileNamespace.uploadCommand.Flag("", "overwrite", &argparse.Options{Help: "Name/path of the target bucket", Default: false})
 	downloadName := cliParser.s3Namespace.fileNamespace.downloadCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
 	downloadBucketName := cliParser.s3Namespace.fileNamespace.downloadCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
 	listBucketName := cliParser.s3Namespace.fileNamespace.listCommand.String("b", "bucketname", &argparse.Options{Help: "Name of the S3 bucket", Required: true})
@@ -70,7 +71,7 @@ func main() {
 	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
 		awsstorage.ListBucket(awsstorage.GetS3Client(awsstorage.GetAwsSession()))
 	} else if cliParser.s3Namespace.fileNamespace.uploadCommand.Happened() {
-		awsstorage.UploadFile(awsstorage.GetAwsSession(), *uploadBucketName, *uploadName)
+		awsstorage.UploadFile(awsstorage.GetAwsSession(), *uploadBucketName, *uploadName, *uploadOverwrite)
 	} else if cliParser.s3Namespace.fileNamespace.downloadCommand.Happened() {
 		awsstorage.DownloadFile(awsstorage.GetAwsSession(), *downloadBucketName, *downloadName)
 	} else if cliParser.s3Namespace.fileNamespace.listCommand.Happened() {
