@@ -39,9 +39,6 @@ type BucketManifest struct {
 	file   map[string]string
 }
 
-// BucketManifestFilename is the file storing the information
-const BucketManifestFilename = "bucket-manifest.yaml"
-
 func main() {
 
 	cliParser := createCLIParser()

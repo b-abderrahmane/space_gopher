@@ -9,6 +9,9 @@ import (
 	"os"
 )
 
+// BucketManifestFilename is the file storing the information
+const BucketManifestFilename = "bucket-manifest.yaml"
+
 func fileExists(sess *session.Session, bucketName string, filename string) bool {
 	for _, item := range listFiles(GetS3Client(sess), bucketName) {
 		if *item.Key == filename {
@@ -26,6 +29,10 @@ func UploadFile(sess *session.Session, bucketName string, file_path string, uplo
 	f, err := os.Open(file_path)
 	if err != nil {
 		ExitErrorf("failed to open file %q, %v", file_path, err)
+	}
+
+	if !fileExists(sess, bucketName, BucketManifestFilename) {
+		fmt.Println("This bucket does not have a manifest file.")
 	}
 
 	if !uploadOverwrite && fileExists(sess, bucketName, file_path) {
