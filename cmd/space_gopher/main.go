@@ -46,8 +46,8 @@ func main() {
 	createBucketName := cliParser.s3Namespace.bucketNamespace.createCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: true})
 	deleteBucketName := cliParser.s3Namespace.bucketNamespace.deleteCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be deleted", Required: true})
 	deleteBucketPurge := cliParser.s3Namespace.bucketNamespace.deleteCommand.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
-	uploadFileName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
-	uploadBucketName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
+	fileName := cliParser.s3Namespace.fileNamespace.fileCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
+	fileBucketName := cliParser.s3Namespace.fileNamespace.fileCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
 
 	err := cliParser.parser.Parse(os.Args)
 	if err != nil {
@@ -64,7 +64,9 @@ func main() {
 	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
 		awsstorage.ListBucket(getS3Client(getAwsSession()))
 	} else if cliParser.s3Namespace.fileNamespace.uploadCommand.Happened() {
-		awsstorage.UploadFile(getAwsSession(), *uploadBucketName, *uploadFileName)
+		awsstorage.UploadFile(getAwsSession(), *fileBucketName, *fileName)
+	} else if cliParser.s3Namespace.fileNamespace.downloadCommand.Happened() {
+		awsstorage.DownloadFile(getAwsSession(), *fileBucketName, *fileName)
 	}
 }
 
@@ -97,5 +99,6 @@ func createCLIParser() *CLIParser {
 	cliParser.s3Namespace.fileNamespace = new(S3FileNamespace)
 	cliParser.s3Namespace.fileNamespace.fileCommand = cliParser.s3Namespace.s3Command.NewCommand("file", "Manage S3 buckets content")
 	cliParser.s3Namespace.fileNamespace.uploadCommand = cliParser.s3Namespace.fileNamespace.fileCommand.NewCommand("upload", "upload file to an S3 bucket")
+	cliParser.s3Namespace.fileNamespace.downloadCommand = cliParser.s3Namespace.fileNamespace.fileCommand.NewCommand("download", "download file to an S3 bucket")
 	return cliParser
 }
