@@ -19,6 +19,12 @@ func UploadFile(sess *session.Session, bucketName string, file_path string) {
 		ExitErrorf("failed to open file %q, %v", file_path, err)
 	}
 
+	for _, item := range listFiles(GetS3Client(sess), bucketName) {
+		if *item.Key == file_path {
+			ExitErrorf("Upload canceled, a file with the same name (%q) already exists", file_path)
+		}
+	}
+
 	// Upload the file to S3.
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucketName),

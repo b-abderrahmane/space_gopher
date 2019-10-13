@@ -6,9 +6,6 @@ import (
 
 	"../../pkg/awsstorage"
 	"github.com/akamensky/argparse"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 type S3BucketNamespace struct {
@@ -42,9 +39,6 @@ type BucketManifest struct {
 	file   map[string]string
 }
 
-// GlobalRegion is the Default region for now
-const GlobalRegion = "us-west-1"
-
 // BucketManifestFilename is the file storing the information
 const BucketManifestFilename = "bucket-manifest.yaml"
 
@@ -68,35 +62,20 @@ func main() {
 	}
 
 	if cliParser.s3Namespace.bucketNamespace.createCommand.Happened() {
-		awsstorage.CreateBucket(getS3Client(getAwsSession()), *createBucketName)
+		awsstorage.CreateBucket(awsstorage.GetS3Client(awsstorage.GetAwsSession()), *createBucketName)
 
 	} else if cliParser.s3Namespace.bucketNamespace.deleteCommand.Happened() {
-		awsstorage.DeleteBucket(getS3Client(getAwsSession()), *deleteBucketName, *deleteBucketPurge)
+		awsstorage.DeleteBucket(awsstorage.GetS3Client(awsstorage.GetAwsSession()), *deleteBucketName, *deleteBucketPurge)
 
 	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
-		awsstorage.ListBucket(getS3Client(getAwsSession()))
+		awsstorage.ListBucket(awsstorage.GetS3Client(awsstorage.GetAwsSession()))
 	} else if cliParser.s3Namespace.fileNamespace.uploadCommand.Happened() {
-		awsstorage.UploadFile(getAwsSession(), *uploadBucketName, *uploadName)
+		awsstorage.UploadFile(awsstorage.GetAwsSession(), *uploadBucketName, *uploadName)
 	} else if cliParser.s3Namespace.fileNamespace.downloadCommand.Happened() {
-		awsstorage.DownloadFile(getAwsSession(), *downloadBucketName, *downloadName)
+		awsstorage.DownloadFile(awsstorage.GetAwsSession(), *downloadBucketName, *downloadName)
 	} else if cliParser.s3Namespace.fileNamespace.listCommand.Happened() {
-		awsstorage.ListFiles(getS3Client(getAwsSession()), *listBucketName)
+		awsstorage.ListFiles(awsstorage.GetS3Client(awsstorage.GetAwsSession()), *listBucketName)
 	}
-}
-
-func getAwsSession() *session.Session {
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(GlobalRegion)},
-	)
-	if err != nil {
-		awsstorage.ExitErrorf("Unable to create an AWS session, %v", err)
-	}
-	return sess
-}
-
-func getS3Client(sess *session.Session) *s3.S3 {
-	svc := s3.New(sess)
-	return svc
 }
 
 func createCLIParser() *CLIParser {
