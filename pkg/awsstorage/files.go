@@ -9,6 +9,15 @@ import (
 	"os"
 )
 
+func fileExists(sess *session.Session, bucketName string, filename string) bool {
+	for _, item := range listFiles(GetS3Client(sess), bucketName) {
+		if *item.Key == filename {
+			return true
+		}
+	}
+	return false
+}
+
 func UploadFile(sess *session.Session, bucketName string, file_path string, uploadOverwrite bool) {
 
 	// Create an uploader with the session and default options
@@ -18,12 +27,9 @@ func UploadFile(sess *session.Session, bucketName string, file_path string, uplo
 	if err != nil {
 		ExitErrorf("failed to open file %q, %v", file_path, err)
 	}
-	if !uploadOverwrite {
-		for _, item := range listFiles(GetS3Client(sess), bucketName) {
-			if *item.Key == file_path {
-				ExitErrorf("Upload canceled, a file with the same name (%q) already exists", file_path)
-			}
-		}
+
+	if !uploadOverwrite && fileExists(sess, bucketName, file_path) {
+		ExitErrorf("Upload canceled, a file with the same name (%q) already exists", file_path)
 	}
 
 	// Upload the file to S3.
