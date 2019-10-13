@@ -2,12 +2,11 @@ package awsstorage
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"os"
 )
 
 func UploadFile(sess *session.Session, bucketName string, file_path string) {
@@ -52,4 +51,23 @@ func DownloadFile(sess *session.Session, bucketName string, file_path string) {
 		ExitErrorf("failed to download file, %v", err)
 	}
 	fmt.Printf("file downloaded, %d bytes\n", n)
+}
+
+func listFiles(svc *s3.S3, bucketName string) []*s3.Object {
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(bucketName)})
+	if err != nil {
+		ExitErrorf("Unable to list items in bucket %q, %v", bucketName, err)
+	}
+	return resp.Contents
+}
+
+func ListFiles(svc *s3.S3, bucketName string) {
+	files := listFiles(svc, bucketName)
+	for _, item := range files {
+		fmt.Println("Name:         ", *item.Key)
+		fmt.Println("Last modified:", *item.LastModified)
+		fmt.Println("Size:         ", *item.Size)
+		fmt.Println("Storage class:", *item.StorageClass)
+		fmt.Println("")
+	}
 }
