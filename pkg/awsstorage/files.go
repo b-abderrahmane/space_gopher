@@ -15,11 +15,10 @@ import (
 const BucketManifestFilename = "bucket-manifest.json"
 
 type FileEntry struct {
-	filename string
-	size     int
-	hash     string
-	url      string
-	public   bool
+	Filename     string
+	Size         int64
+	LastModified string
+	URL          string
 }
 
 func fileExists(sess *session.Session, bucketName string, filename string) bool {
@@ -62,6 +61,7 @@ func UploadFile(sess *session.Session, bucketName string, file_path string, uplo
 	}
 	uploadFile(sess, bucketName, file_path, uploadOverwrite, fileContent)
 }
+
 func DownloadFile(sess *session.Session, bucketName string, file_path string) {
 
 	// Create a downloader with the session and default options
@@ -94,6 +94,7 @@ func listFiles(svc *s3.S3, bucketName string) []*s3.Object {
 
 func ListFiles(svc *s3.S3, bucketName string) {
 	files := listFiles(svc, bucketName)
+	generateFullManifest(bucketName, files)
 	for _, item := range files {
 		fmt.Println("Name:         ", *item.Key)
 		fmt.Println("Last modified:", *item.LastModified)
@@ -101,4 +102,17 @@ func ListFiles(svc *s3.S3, bucketName string) {
 		fmt.Println("Storage class:", *item.StorageClass)
 		fmt.Println("")
 	}
+}
+
+func generateFullManifest(bucket string, files []*s3.Object) string {
+	var fileEntries []FileEntry
+	for _, file := range files {
+		url := fmt.Sprintf("https://%s.s3-us-west-1.amazonaws.com/%s", bucket, *file.Key)
+		fmt.Println(*file.Key, *file.Size, file.LastModified.String(), url)
+		manifestEntry := FileEntry{*file.Key, *(file.Size), file.LastModified.String(), url}
+		fileEntries = append(fileEntries, manifestEntry)
+	}
+	b, _ := json.Marshal(fileEntries)
+	fmt.Println(string(b))
+	return string(b)
 }
