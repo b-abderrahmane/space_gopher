@@ -1,16 +1,26 @@
 package awsstorage
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"io"
 	"os"
 )
 
 // BucketManifestFilename is the file storing the information
-const BucketManifestFilename = "bucket-manifest.yaml"
+const BucketManifestFilename = "bucket-manifest.json"
+
+type FileEntry struct {
+	filename string
+	size     int
+	hash     string
+	url      string
+	public   bool
+}
 
 func fileExists(sess *session.Session, bucketName string, filename string) bool {
 	for _, item := range listFiles(GetS3Client(sess), bucketName) {
@@ -21,12 +31,24 @@ func fileExists(sess *session.Session, bucketName string, filename string) bool 
 	return false
 }
 
-func UploadFile(sess *session.Session, bucketName string, file_path string, uploadOverwrite bool) {
-
+func uploadFile(sess *session.Session, bucketName string, file_path string, uploadOverwrite bool, fileContent io.Reader) {
 	// Create an uploader with the session and default options
 	uploader := s3manager.NewUploader(sess)
+	// Upload the file to S3.
+	result, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(file_path),
+		Body:   fileContent,
+	})
+	if err != nil {
+		ExitErrorf("failed to upload file, %v", err)
+	}
+	fmt.Printf("file uploaded to, %s\n", aws.StringValue(&result.Location))
+}
 
-	f, err := os.Open(file_path)
+func UploadFile(sess *session.Session, bucketName string, file_path string, uploadOverwrite bool) {
+
+	fileContent, err := os.Open(file_path)
 	if err != nil {
 		ExitErrorf("failed to open file %q, %v", file_path, err)
 	}
@@ -38,19 +60,8 @@ func UploadFile(sess *session.Session, bucketName string, file_path string, uplo
 	if !uploadOverwrite && fileExists(sess, bucketName, file_path) {
 		ExitErrorf("Upload canceled, a file with the same name (%q) already exists", file_path)
 	}
-
-	// Upload the file to S3.
-	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(file_path),
-		Body:   f,
-	})
-	if err != nil {
-		ExitErrorf("failed to upload file, %v", err)
-	}
-	fmt.Printf("file uploaded to, %s\n", aws.StringValue(&result.Location))
+	uploadFile(sess, bucketName, file_path, uploadOverwrite, fileContent)
 }
-
 func DownloadFile(sess *session.Session, bucketName string, file_path string) {
 
 	// Create a downloader with the session and default options
