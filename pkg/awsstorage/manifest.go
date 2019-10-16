@@ -42,7 +42,7 @@ func generateUpdatedManifestDefinition(bucket string, fullManifest string, newFi
 
 func updateManifest(bucketName string, file *os.File, fileName string, oldManifest string) {
 	if oldManifest == "" {
-		oldManifest = generateFullManifest(bucketName, listFiles(GetS3Client(GetAwsSession()), bucketName))
+		oldManifest = generateFullManifest(bucketName, listFiles(GetS3Client(), bucketName))
 	}
 
 	fi, err := file.Stat()
@@ -52,5 +52,5 @@ func updateManifest(bucketName string, file *os.File, fileName string, oldManife
 
 	manifestEntry := generateManifestEntry(bucketName, fileName, fi.Size(), time.Now().String())
 	oldManifest = generateUpdatedManifestDefinition(bucketName, oldManifest, manifestEntry)
-	uploadFile(GetAwsSession(), bucketName, BucketManifestFilename, false, strings.NewReader(oldManifest))
+	uploadFile(bucketName, BucketManifestFilename, false, strings.NewReader(oldManifest))
 }

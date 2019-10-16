@@ -9,8 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-func CreateBucket(svc *s3.S3, bucketName string) {
-	_, err := svc.CreateBucket(&s3.CreateBucketInput{
+func CreateBucket(bucketName string) {
+	_, err := GetS3Client().CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 
@@ -21,20 +21,20 @@ func CreateBucket(svc *s3.S3, bucketName string) {
 	}
 }
 
-func DeleteBucket(svc *s3.S3, bucketName string, purgeBucket bool) {
+func DeleteBucket(bucketName string, purgeBucket bool) {
 	if purgeBucket {
 		fmt.Printf("Bucket %s contains some elements, those files will be deleted.\n", bucketName)
-		iter := s3manager.NewDeleteListIterator(svc, &s3.ListObjectsInput{
+		iter := s3manager.NewDeleteListIterator(GetS3Client(), &s3.ListObjectsInput{
 			Bucket: aws.String(bucketName),
 		})
 
-		if err := s3manager.NewBatchDeleteWithClient(svc).Delete(aws.BackgroundContext(), iter); err != nil {
+		if err := s3manager.NewBatchDeleteWithClient(GetS3Client()).Delete(aws.BackgroundContext(), iter); err != nil {
 			ExitErrorf("Unable to delete objects from bucket %q, %v", bucketName, err)
 		}
 		fmt.Printf("Bucket %s content purged successfully\n", bucketName)
 	}
 
-	_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
+	_, err := GetS3Client().DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 
@@ -45,8 +45,8 @@ func DeleteBucket(svc *s3.S3, bucketName string, purgeBucket bool) {
 	}
 }
 
-func ListBucket(svc *s3.S3) {
-	result, err := svc.ListBuckets(nil)
+func ListBucket() {
+	result, err := GetS3Client().ListBuckets(nil)
 
 	if err != nil {
 		ExitErrorf("Unable to list buckets", err)

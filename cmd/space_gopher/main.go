@@ -60,19 +60,19 @@ func main() {
 	}
 
 	if cliParser.s3Namespace.bucketNamespace.createCommand.Happened() {
-		awsstorage.CreateBucket(awsstorage.GetS3Client(awsstorage.GetAwsSession()), *createBucketName)
+		awsstorage.CreateBucket(*createBucketName)
 
 	} else if cliParser.s3Namespace.bucketNamespace.deleteCommand.Happened() {
-		awsstorage.DeleteBucket(awsstorage.GetS3Client(awsstorage.GetAwsSession()), *deleteBucketName, *deleteBucketPurge)
+		awsstorage.DeleteBucket(*deleteBucketName, *deleteBucketPurge)
 
 	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
-		awsstorage.ListBucket(awsstorage.GetS3Client(awsstorage.GetAwsSession()))
+		awsstorage.ListBucket()
 	} else if cliParser.s3Namespace.fileNamespace.uploadCommand.Happened() {
-		awsstorage.UploadFile(awsstorage.GetAwsSession(), *uploadBucketName, *uploadName, *uploadOverwrite)
+		awsstorage.UploadFile(*uploadBucketName, *uploadName, *uploadOverwrite)
 	} else if cliParser.s3Namespace.fileNamespace.downloadCommand.Happened() {
 		awsstorage.DownloadFile(awsstorage.GetAwsSession(), *downloadBucketName, *downloadName)
 	} else if cliParser.s3Namespace.fileNamespace.listCommand.Happened() {
-		awsstorage.ListFiles(awsstorage.GetS3Client(awsstorage.GetAwsSession()), *listBucketName)
+		awsstorage.ListFiles(*listBucketName)
 	}
 }
 

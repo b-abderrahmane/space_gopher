@@ -22,8 +22,8 @@ type FileEntry struct {
 	URL          string
 }
 
-func fileExists(sess *session.Session, bucketName string, filename string) bool {
-	for _, item := range listFiles(GetS3Client(sess), bucketName) {
+func fileExists(bucketName string, filename string) bool {
+	for _, item := range listFiles(GetS3Client(), bucketName) {
 		if *item.Key == filename {
 			return true
 		}
@@ -31,9 +31,9 @@ func fileExists(sess *session.Session, bucketName string, filename string) bool 
 	return false
 }
 
-func uploadFile(sess *session.Session, bucketName string, filePath string, uploadOverwrite bool, fileContent io.Reader) {
+func uploadFile(bucketName string, filePath string, uploadOverwrite bool, fileContent io.Reader) {
 	// Create an uploader with the session and default options
-	uploader := s3manager.NewUploader(sess)
+	uploader := s3manager.NewUploader(GetAwsSession())
 	// Upload the file to S3.
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucketName),
@@ -46,23 +46,23 @@ func uploadFile(sess *session.Session, bucketName string, filePath string, uploa
 	fmt.Printf("file uploaded to, %s\n", aws.StringValue(&result.Location))
 }
 
-func UploadFile(sess *session.Session, bucketName string, filePath string, uploadOverwrite bool) {
+func UploadFile(bucketName string, filePath string, uploadOverwrite bool) {
 
 	fileContent, err := os.Open(filePath)
 	if err != nil {
 		ExitErrorf("failed to open file %q, %v", filePath, err)
 	}
 	fullManifest := ""
-	if !fileExists(sess, bucketName, BucketManifestFilename) {
+	if !fileExists(bucketName, BucketManifestFilename) {
 		fmt.Println("This bucket does not have a manifest file.")
-		fullManifest = generateFullManifest(bucketName, listFiles(GetS3Client(sess), bucketName))
-		uploadFile(sess, bucketName, BucketManifestFilename, false, strings.NewReader(fullManifest))
+		fullManifest = generateFullManifest(bucketName, listFiles(GetS3Client(), bucketName))
+		uploadFile(bucketName, BucketManifestFilename, false, strings.NewReader(fullManifest))
 	}
 
-	if !uploadOverwrite && fileExists(sess, bucketName, filePath) {
+	if !uploadOverwrite && fileExists(bucketName, filePath) {
 		ExitErrorf("Upload canceled, a file with the same name (%q) already exists", filePath)
 	}
-	uploadFile(sess, bucketName, filePath, uploadOverwrite, fileContent)
+	uploadFile(bucketName, filePath, uploadOverwrite, fileContent)
 	updateManifest(bucketName, fileContent, filePath, fullManifest)
 }
 
@@ -96,8 +96,8 @@ func listFiles(svc *s3.S3, bucketName string) []*s3.Object {
 	return resp.Contents
 }
 
-func ListFiles(svc *s3.S3, bucketName string) {
-	files := listFiles(svc, bucketName)
+func ListFiles(bucketName string) {
+	files := listFiles(GetS3Client(), bucketName)
 	generateFullManifest(bucketName, files)
 	for _, item := range files {
 		fmt.Println("Name:         ", *item.Key)
