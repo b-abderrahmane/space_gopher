@@ -118,6 +118,6 @@ func generateFullManifest(bucket string, files []*s3.Object) string {
 		manifestEntry := generateManifestEntry(bucket, file)
 		fileEntries = append(fileEntries, manifestEntry)
 	}
-	b, _ := json.Marshal(fileEntries)
-	return string(b)
+	jsonFileEntries, _ := json.Marshal(fileEntries)
+	return string(jsonFileEntries)
 }
