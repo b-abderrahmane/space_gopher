@@ -105,15 +105,19 @@ func ListFiles(svc *s3.S3, bucketName string) {
 	}
 }
 
+func generateManifestEntry(bucket string, file *s3.Object) FileEntry {
+	url := fmt.Sprintf("https://%s.s3-us-west-1.amazonaws.com/%s", bucket, *file.Key)
+	fmt.Println(*file.Key, *file.Size, file.LastModified.String(), url)
+	manifestEntry := FileEntry{*file.Key, *(file.Size), file.LastModified.String(), url}
+	return manifestEntry
+}
+
 func generateFullManifest(bucket string, files []*s3.Object) string {
 	var fileEntries []FileEntry
 	for _, file := range files {
-		url := fmt.Sprintf("https://%s.s3-us-west-1.amazonaws.com/%s", bucket, *file.Key)
-		fmt.Println(*file.Key, *file.Size, file.LastModified.String(), url)
-		manifestEntry := FileEntry{*file.Key, *(file.Size), file.LastModified.String(), url}
+		manifestEntry := generateManifestEntry(bucket, file)
 		fileEntries = append(fileEntries, manifestEntry)
 	}
 	b, _ := json.Marshal(fileEntries)
-	fmt.Println(string(b))
 	return string(b)
 }
