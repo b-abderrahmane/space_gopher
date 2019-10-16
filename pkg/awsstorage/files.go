@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -52,15 +54,29 @@ func UploadFile(sess *session.Session, bucketName string, filePath string, uploa
 	if err != nil {
 		ExitErrorf("failed to open file %q, %v", filePath, err)
 	}
-
+	fullManifest := ""
 	if !fileExists(sess, bucketName, BucketManifestFilename) {
 		fmt.Println("This bucket does not have a manifest file.")
+		fullManifest = generateFullManifest(bucketName, listFiles(GetS3Client(sess), bucketName))
+		uploadFile(sess, bucketName, BucketManifestFilename, false, strings.NewReader(fullManifest))
 	}
 
 	if !uploadOverwrite && fileExists(sess, bucketName, filePath) {
 		ExitErrorf("Upload canceled, a file with the same name (%q) already exists", filePath)
 	}
 	uploadFile(sess, bucketName, filePath, uploadOverwrite, fileContent)
+
+	if fullManifest == "" {
+		fullManifest = generateFullManifest(bucketName, listFiles(GetS3Client(sess), bucketName))
+	}
+
+	fi, err := fileContent.Stat()
+
+	manifestEntry := generateManifestEntry(bucketName, filePath, fi.Size(), time.Now().String())
+	fmt.Println(fullManifest)
+	fullManifest = updateManifestDefinition(bucketName, fullManifest, manifestEntry)
+	fmt.Println(fullManifest)
+	uploadFile(sess, bucketName, BucketManifestFilename, false, strings.NewReader(fullManifest))
 }
 
 func DownloadFile(sess *session.Session, bucketName string, filePath string) {
@@ -116,6 +132,20 @@ func generateFullManifest(bucket string, files []*s3.Object) string {
 	for _, file := range files {
 		manifestEntry := generateManifestEntry(bucket, *file.Key, *(file.Size), file.LastModified.String())
 		fileEntries = append(fileEntries, manifestEntry)
+	}
+	jsonFileEntries, _ := json.Marshal(fileEntries)
+	return string(jsonFileEntries)
+}
+
+func updateManifestDefinition(bucket string, fullManifest string, newFile FileEntry) string {
+	var fileEntries []FileEntry
+
+	manifestEntry := generateManifestEntry(bucket, newFile.Filename, newFile.Size, newFile.LastModified)
+	err := json.Unmarshal([]byte(fullManifest), &fileEntries)
+	fileEntries = append(fileEntries, manifestEntry)
+
+	if err != nil {
+		ExitErrorf("Unable to parse existing manifest, therefor unable to update it", err)
 	}
 	jsonFileEntries, _ := json.Marshal(fileEntries)
 	return string(jsonFileEntries)
