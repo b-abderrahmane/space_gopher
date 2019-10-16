@@ -49,7 +49,7 @@ func ListBucket(svc *s3.S3) {
 	result, err := svc.ListBuckets(nil)
 
 	if err != nil {
-		ExitErrorf("Unable to list buckets")
+		ExitErrorf("Unable to list buckets", err)
 	}
 	if result.Buckets != nil {
 		fmt.Println("Buckets:")
