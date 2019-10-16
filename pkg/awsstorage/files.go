@@ -65,18 +65,7 @@ func UploadFile(sess *session.Session, bucketName string, filePath string, uploa
 		ExitErrorf("Upload canceled, a file with the same name (%q) already exists", filePath)
 	}
 	uploadFile(sess, bucketName, filePath, uploadOverwrite, fileContent)
-
-	if fullManifest == "" {
-		fullManifest = generateFullManifest(bucketName, listFiles(GetS3Client(sess), bucketName))
-	}
-
-	fi, err := fileContent.Stat()
-
-	manifestEntry := generateManifestEntry(bucketName, filePath, fi.Size(), time.Now().String())
-	fmt.Println(fullManifest)
-	fullManifest = updateManifestDefinition(bucketName, fullManifest, manifestEntry)
-	fmt.Println(fullManifest)
-	uploadFile(sess, bucketName, BucketManifestFilename, false, strings.NewReader(fullManifest))
+	updateManifest(bucketName, fileContent, filePath, fullManifest)
 }
 
 func DownloadFile(sess *session.Session, bucketName string, filePath string) {
@@ -137,7 +126,7 @@ func generateFullManifest(bucket string, files []*s3.Object) string {
 	return string(jsonFileEntries)
 }
 
-func updateManifestDefinition(bucket string, fullManifest string, newFile FileEntry) string {
+func generateUpdatedManifestDefinition(bucket string, fullManifest string, newFile FileEntry) string {
 	var fileEntries []FileEntry
 
 	manifestEntry := generateManifestEntry(bucket, newFile.Filename, newFile.Size, newFile.LastModified)
@@ -149,4 +138,19 @@ func updateManifestDefinition(bucket string, fullManifest string, newFile FileEn
 	}
 	jsonFileEntries, _ := json.Marshal(fileEntries)
 	return string(jsonFileEntries)
+}
+
+func updateManifest(bucketName string, file *os.File, fileName string, oldManifest string) {
+	if oldManifest == "" {
+		oldManifest = generateFullManifest(bucketName, listFiles(GetS3Client(GetAwsSession()), bucketName))
+	}
+
+	fi, err := file.Stat()
+	if err != nil {
+		ExitErrorf("Unable to get file information", err)
+	}
+
+	manifestEntry := generateManifestEntry(bucketName, fileName, fi.Size(), time.Now().String())
+	oldManifest = generateUpdatedManifestDefinition(bucketName, oldManifest, manifestEntry)
+	uploadFile(GetAwsSession(), bucketName, BucketManifestFilename, false, strings.NewReader(oldManifest))
 }
