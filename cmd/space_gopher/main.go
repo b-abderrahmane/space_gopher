@@ -3,16 +3,34 @@ package main
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"../../pkg/awsstorage"
 	"github.com/akamensky/argparse"
 )
 
+func (ns S3BucketNamespace) addStringArg() {
+	v := reflect.ValueOf(ns)
+
+	values := make([]interface{}, v.NumField())
+
+	for i := 0; i < v.NumField(); i++ {
+
+		values[i] = v.Field(i).Interface()
+		fmt.Println(reflect.Value.Type(v.Field(i)))
+		fmt.Println(values[i])
+		fmt.Println("--------------")
+
+	}
+
+	fmt.Println(values)
+}
+
 type S3BucketNamespace struct {
-	bucketParser  *argparse.Command
-	deleteCommand *argparse.Command
-	createCommand *argparse.Command
-	listCommand   *argparse.Command
+	BucketParser  *argparse.Command
+	DeleteCommand *argparse.Command
+	CreateCommand *argparse.Command
+	ListCommand   *argparse.Command
 }
 
 type S3FileNamespace struct {
@@ -43,9 +61,9 @@ func main() {
 
 	cliParser := createCLIParser()
 
-	createBucketName := cliParser.s3Namespace.bucketNamespace.createCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: true})
-	deleteBucketName := cliParser.s3Namespace.bucketNamespace.deleteCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be deleted", Required: true})
-	deleteBucketPurge := cliParser.s3Namespace.bucketNamespace.deleteCommand.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
+	createBucketName := cliParser.s3Namespace.bucketNamespace.CreateCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: true})
+	deleteBucketName := cliParser.s3Namespace.bucketNamespace.DeleteCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be deleted", Required: true})
+	deleteBucketPurge := cliParser.s3Namespace.bucketNamespace.DeleteCommand.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
 	uploadName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
 	uploadBucketName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
 	uploadOverwrite := cliParser.s3Namespace.fileNamespace.uploadCommand.Flag("", "overwrite", &argparse.Options{Help: "Name/path of the target bucket", Default: false})
@@ -53,17 +71,19 @@ func main() {
 	downloadBucketName := cliParser.s3Namespace.fileNamespace.downloadCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
 	listBucketName := cliParser.s3Namespace.fileNamespace.listCommand.String("b", "bucketname", &argparse.Options{Help: "Name of the S3 bucket", Required: true})
 
+	cliParser.s3Namespace.bucketNamespace.addStringArg()
+
 	err := cliParser.parser.Parse(os.Args)
 	if err != nil {
 		fmt.Println(cliParser.parser.Usage(err))
 		return
 	}
 
-	if cliParser.s3Namespace.bucketNamespace.createCommand.Happened() {
+	if cliParser.s3Namespace.bucketNamespace.CreateCommand.Happened() {
 		awsstorage.CreateBucket(*createBucketName)
-	} else if cliParser.s3Namespace.bucketNamespace.deleteCommand.Happened() {
+	} else if cliParser.s3Namespace.bucketNamespace.DeleteCommand.Happened() {
 		awsstorage.DeleteBucket(*deleteBucketName, *deleteBucketPurge)
-	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
+	} else if cliParser.s3Namespace.bucketNamespace.ListCommand.Happened() {
 		awsstorage.ListBucket()
 	} else if cliParser.s3Namespace.fileNamespace.uploadCommand.Happened() {
 		awsstorage.UploadFile(*uploadBucketName, *uploadName, *uploadOverwrite)
@@ -82,10 +102,10 @@ func createCLIParser() *CLIParser {
 	cliParser.s3Namespace.s3Command = cliParser.parser.NewCommand("s3", "Manage AWS S3 resources")
 
 	cliParser.s3Namespace.bucketNamespace = new(S3BucketNamespace)
-	cliParser.s3Namespace.bucketNamespace.bucketParser = cliParser.s3Namespace.s3Command.NewCommand("bucket", "Manage S3 buckets")
-	cliParser.s3Namespace.bucketNamespace.deleteCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("delete", "Delete an S3 bucket")
-	cliParser.s3Namespace.bucketNamespace.createCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("create", "Create an S3 bucket")
-	cliParser.s3Namespace.bucketNamespace.listCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("list", "List S3 buckets")
+	cliParser.s3Namespace.bucketNamespace.BucketParser = cliParser.s3Namespace.s3Command.NewCommand("bucket", "Manage S3 buckets")
+	cliParser.s3Namespace.bucketNamespace.DeleteCommand = cliParser.s3Namespace.bucketNamespace.BucketParser.NewCommand("delete", "Delete an S3 bucket")
+	cliParser.s3Namespace.bucketNamespace.CreateCommand = cliParser.s3Namespace.bucketNamespace.BucketParser.NewCommand("create", "Create an S3 bucket")
+	cliParser.s3Namespace.bucketNamespace.ListCommand = cliParser.s3Namespace.bucketNamespace.BucketParser.NewCommand("list", "List S3 buckets")
 
 	cliParser.s3Namespace.fileNamespace = new(S3FileNamespace)
 	cliParser.s3Namespace.fileNamespace.fileCommand = cliParser.s3Namespace.s3Command.NewCommand("file", "Manage S3 buckets content")
