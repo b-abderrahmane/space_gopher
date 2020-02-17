@@ -61,10 +61,8 @@ func main() {
 
 	if cliParser.s3Namespace.bucketNamespace.createCommand.Happened() {
 		awsstorage.CreateBucket(*createBucketName)
-
 	} else if cliParser.s3Namespace.bucketNamespace.deleteCommand.Happened() {
 		awsstorage.DeleteBucket(*deleteBucketName, *deleteBucketPurge)
-
 	} else if cliParser.s3Namespace.bucketNamespace.listCommand.Happened() {
 		awsstorage.ListBucket()
 	} else if cliParser.s3Namespace.fileNamespace.uploadCommand.Happened() {
@@ -82,11 +80,13 @@ func createCLIParser() *CLIParser {
 	cliParser.parser = argparse.NewParser(os.Args[0], "Prints provided string to stdout")
 	cliParser.s3Namespace = new(S3Namespace)
 	cliParser.s3Namespace.s3Command = cliParser.parser.NewCommand("s3", "Manage AWS S3 resources")
+
 	cliParser.s3Namespace.bucketNamespace = new(S3BucketNamespace)
 	cliParser.s3Namespace.bucketNamespace.bucketParser = cliParser.s3Namespace.s3Command.NewCommand("bucket", "Manage S3 buckets")
 	cliParser.s3Namespace.bucketNamespace.deleteCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("delete", "Delete an S3 bucket")
 	cliParser.s3Namespace.bucketNamespace.createCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("create", "Create an S3 bucket")
 	cliParser.s3Namespace.bucketNamespace.listCommand = cliParser.s3Namespace.bucketNamespace.bucketParser.NewCommand("list", "List S3 buckets")
+
 	cliParser.s3Namespace.fileNamespace = new(S3FileNamespace)
 	cliParser.s3Namespace.fileNamespace.fileCommand = cliParser.s3Namespace.s3Command.NewCommand("file", "Manage S3 buckets content")
 	cliParser.s3Namespace.fileNamespace.uploadCommand = cliParser.s3Namespace.fileNamespace.fileCommand.NewCommand("upload", "upload file to an S3 bucket")
