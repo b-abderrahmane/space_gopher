@@ -61,15 +61,12 @@ func main() {
 
 	cliParser := createCLIParser()
 
-	createBucketName := cliParser.s3Namespace.bucketNamespace.CreateCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: true})
-	deleteBucketName := cliParser.s3Namespace.bucketNamespace.DeleteCommand.String("n", "name", &argparse.Options{Help: "Name of the S3 bucket to be deleted", Required: true})
+	//_ := cliParser.s3Namespace.s3Command.String("", "region", &argparse.Options{Help: "Region of the S3 bucket to be created", Required: true})
+	bucketName := cliParser.s3Namespace.s3Command.String("b", "bucket_name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: false})
 	deleteBucketPurge := cliParser.s3Namespace.bucketNamespace.DeleteCommand.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
 	uploadName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
-	uploadBucketName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
 	uploadOverwrite := cliParser.s3Namespace.fileNamespace.uploadCommand.Flag("", "overwrite", &argparse.Options{Help: "Name/path of the target bucket", Default: false})
 	downloadName := cliParser.s3Namespace.fileNamespace.downloadCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
-	downloadBucketName := cliParser.s3Namespace.fileNamespace.downloadCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
-	listBucketName := cliParser.s3Namespace.fileNamespace.listCommand.String("b", "bucketname", &argparse.Options{Help: "Name of the S3 bucket", Required: true})
 
 	cliParser.s3Namespace.bucketNamespace.addStringArg()
 
@@ -80,17 +77,17 @@ func main() {
 	}
 
 	if cliParser.s3Namespace.bucketNamespace.CreateCommand.Happened() {
-		awsstorage.CreateBucket(*createBucketName)
+		awsstorage.CreateBucket(*bucketName)
 	} else if cliParser.s3Namespace.bucketNamespace.DeleteCommand.Happened() {
-		awsstorage.DeleteBucket(*deleteBucketName, *deleteBucketPurge)
+		awsstorage.DeleteBucket(*bucketName, *deleteBucketPurge)
 	} else if cliParser.s3Namespace.bucketNamespace.ListCommand.Happened() {
 		awsstorage.ListBucket()
 	} else if cliParser.s3Namespace.fileNamespace.uploadCommand.Happened() {
-		awsstorage.UploadFile(*uploadBucketName, *uploadName, *uploadOverwrite)
+		awsstorage.UploadFile(*bucketName, *uploadName, *uploadOverwrite)
 	} else if cliParser.s3Namespace.fileNamespace.downloadCommand.Happened() {
-		awsstorage.DownloadFile(awsstorage.GetAwsSession(), *downloadBucketName, *downloadName)
+		awsstorage.DownloadFile(awsstorage.GetAwsSession(), *bucketName, *downloadName)
 	} else if cliParser.s3Namespace.fileNamespace.listCommand.Happened() {
-		awsstorage.ListFiles(*listBucketName)
+		awsstorage.ListFiles(*bucketName)
 	}
 }
 
