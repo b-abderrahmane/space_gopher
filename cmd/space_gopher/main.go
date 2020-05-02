@@ -3,28 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"../../pkg/awsstorage"
 	"github.com/akamensky/argparse"
 )
-
-func (ns S3BucketNamespace) addStringArg() {
-	v := reflect.ValueOf(ns)
-
-	values := make([]interface{}, v.NumField())
-
-	for i := 0; i < v.NumField(); i++ {
-
-		values[i] = v.Field(i).Interface()
-		fmt.Println(reflect.Value.Type(v.Field(i)))
-		fmt.Println(values[i])
-		fmt.Println("--------------")
-
-	}
-
-	fmt.Println(values)
-}
 
 type S3BucketNamespace struct {
 	BucketParser  *argparse.Command
@@ -70,8 +52,6 @@ func main() {
 	downloadName := cliParser.s3Namespace.fileNamespace.downloadCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
 	downloadBucketName := cliParser.s3Namespace.fileNamespace.downloadCommand.String("b", "bucketname", &argparse.Options{Help: "Name/path of the target bucket", Required: true})
 	listBucketName := cliParser.s3Namespace.fileNamespace.listCommand.String("b", "bucketname", &argparse.Options{Help: "Name of the S3 bucket", Required: true})
-
-	cliParser.s3Namespace.bucketNamespace.addStringArg()
 
 	err := cliParser.parser.Parse(os.Args)
 	if err != nil {
