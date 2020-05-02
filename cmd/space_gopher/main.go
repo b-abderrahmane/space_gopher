@@ -43,7 +43,6 @@ func main() {
 
 	cliParser := createCLIParser()
 
-	//_ := cliParser.s3Namespace.s3Command.String("", "region", &argparse.Options{Help: "Region of the S3 bucket to be created", Required: true})
 	bucketName := cliParser.s3Namespace.s3Command.String("b", "bucket_name", &argparse.Options{Help: "Name of the S3 bucket to be created", Required: false})
 	deleteBucketPurge := cliParser.s3Namespace.bucketNamespace.DeleteCommand.Flag("p", "purge", &argparse.Options{Help: "If the bucket is not empty, delete all it's content", Default: false})
 	uploadName := cliParser.s3Namespace.fileNamespace.uploadCommand.String("f", "filename", &argparse.Options{Help: "Name/path of the file to be uploaded", Required: true})
